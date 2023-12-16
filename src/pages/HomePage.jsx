@@ -1,8 +1,9 @@
 import React from "react";
 import ContactList from "../components/ContactList";
-import { getContacts, deleteContact } from "../utils/data";
 import SearchBar from "../components/SearchBar";
 import { useSearchParams } from "react-router-dom";
+import { getContacts, deleteContact } from "../utils/api";
+import { LocaleConsumer } from "../contexts/LocaleContext";
 
 function HomePageWrapper() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -19,20 +20,32 @@ class HomePage extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      contacts: getContacts(),
+      contacts: [],
       keyword: props.defaultKeyword || "",
     };
     this.onDeleteHandler = this.onDeleteHandler.bind(this);
     this.onKeywordChangeHandler = this.onKeywordChangeHandler.bind(this);
   }
-  onDeleteHandler(id) {
-    deleteContact(id)
+  async onDeleteHandler(id) {
+    await deleteContact(id);
+    const { data } = await getContacts();
     this.setState(() => {
       return {
-        contacts: getContacts(),
+        contacts: data,
       };
     });
   }
+
+  async componentDidMount() {
+    const { data } = await getContacts();
+
+    this.setState(() => {
+      return {
+        contacts: data,
+      };
+    });
+  }
+
   onKeywordChangeHandler(keyword) {
     this.setState(() => {
       return {
@@ -48,14 +61,23 @@ class HomePage extends React.Component {
         .includes(this.state.keyword.toLowerCase());
     });
     return (
-      <section>
-        <SearchBar
-          keyword={this.state.keyword}
-          keywordChange={this.onKeywordChangeHandler}
-        />
-        <h2>Daftar kontak</h2>
-        <ContactList contacts={contacts} onDelete={this.onDeleteHandler} />
-      </section>
+      <LocaleConsumer>
+        {({ locale }) => {
+          return (
+            <section>
+              <SearchBar
+                keyword={this.state.keyword}
+                keywordChange={this.onKeywordChangeHandler}
+              />
+              <h2>{locale === "id" ? "Daftar Kontak" : "Contacts List"}</h2>
+              <ContactList
+                contacts={contacts}
+                onDelete={this.onDeleteHandler}
+              />
+            </section>
+          );
+        }}
+      </LocaleConsumer>
     );
   }
 }
